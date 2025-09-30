@@ -1,8 +1,10 @@
 import { DailyActivities } from "@/components/DailyActivities";
 import { ChallengeCenter } from "@/components/ChallengeCenter";
+import { DailyQA } from "@/components/DailyQA";
+import { AnniversaryTracker } from "@/components/AnniversaryTracker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Target, Heart, Zap, CheckCircle, Clock } from "lucide-react";
+import { Calendar, Target, Heart, Zap, CheckCircle, Clock, MessageCircle } from "lucide-react";
 
 const Activities = () => {
   return (
@@ -61,14 +63,22 @@ const Activities = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="daily" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto mb-8 bg-card shadow-gentle">
+          <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto mb-8 bg-card shadow-gentle">
             <TabsTrigger value="daily" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Daily Activities
+              Daily
             </TabsTrigger>
             <TabsTrigger value="challenges" className="flex items-center gap-2">
               <Target className="h-4 w-4" />
               Challenges
+            </TabsTrigger>
+            <TabsTrigger value="qa" className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Q&A
+            </TabsTrigger>
+            <TabsTrigger value="anniversaries" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Events
             </TabsTrigger>
           </TabsList>
           
@@ -78,6 +88,14 @@ const Activities = () => {
           
           <TabsContent value="challenges">
             <ChallengeCenter />
+          </TabsContent>
+          
+          <TabsContent value="qa">
+            <DailyQA />
+          </TabsContent>
+          
+          <TabsContent value="anniversaries">
+            <AnniversaryTracker />
           </TabsContent>
         </Tabs>
       </div>
