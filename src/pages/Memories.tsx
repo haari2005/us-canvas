@@ -2,7 +2,7 @@ import { MemoryGallery } from "@/components/MemoryGallery";
 import { MemoryTimeline } from "@/components/MemoryTimeline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, MapPin, Heart, Camera, Plus, Star, Clock } from "lucide-react";
+import { Calendar, MapPin, Heart, Camera, Plus, Star, Clock, Image, Video } from "lucide-react";
 
 const Memories = () => {
   return (
