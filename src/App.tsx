@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import CoupleHome from "./pages/CoupleHome";
+import InsecurityVault from "./pages/InsecurityVault";
 import Diary from "./pages/Diary";
 import Games from "./pages/Games";
 import Memories from "./pages/Memories";
@@ -33,7 +34,8 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-      <Route path="/couple-home" element={<ProtectedRoute><CoupleHome /></ProtectedRoute>} />
+            <Route path="/couple-home" element={<ProtectedRoute><CoupleHome /></ProtectedRoute>} />
+            <Route path="/insecurity-vault" element={<ProtectedRoute><InsecurityVault /></ProtectedRoute>} />
       <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
       <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
       <Route path="/memories" element={<ProtectedRoute><Memories /></ProtectedRoute>} />

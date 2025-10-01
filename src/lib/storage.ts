@@ -49,11 +49,37 @@ export interface InsecurityEntry {
   id: string;
   coupleId: string;
   authorId: string;
+  authorName: string;
+  title?: string;
   content: string;
-  status: 'sealed' | 'opened' | 'responded';
+  attachments: string[]; // base64 for images/voice
   urgency: 'low' | 'medium' | 'high';
-  createdAt: string;
+  visibility: 'sealed' | 'immediate' | 'scheduled';
+  unlockAt?: string;
+  allowReplies: boolean;
+  tags: string[];
+  status: 'sealed' | 'opened' | 'responded' | 'archived';
+  openedBy?: string;
   openedAt?: string;
+  createdAt: string;
+  replies: InsecurityReply[];
+}
+
+export interface InsecurityReply {
+  id: string;
+  authorId: string;
+  authorName: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface InsecurityAudit {
+  id: string;
+  insecurityId: string;
+  action: 'created' | 'opened' | 'reminded' | 'deleted' | 'commented' | 'flagged';
+  actorId: string;
+  actorName: string;
+  createdAt: string;
 }
 
 export interface SongBucketItem {
@@ -201,7 +227,7 @@ export const saveReminder = (reminder: Reminder) => {
 // Insecurity Vault
 export const getInsecurities = (coupleId: string): InsecurityEntry[] => {
   const entries = JSON.parse(localStorage.getItem('lovable_insecurities') || '[]');
-  return entries.filter((e: InsecurityEntry) => e.coupleId === coupleId);
+  return entries.filter((e: InsecurityEntry) => e.coupleId === coupleId && e.status !== 'archived');
 };
 
 export const saveInsecurity = (entry: InsecurityEntry) => {
@@ -215,6 +241,17 @@ export const saveInsecurity = (entry: InsecurityEntry) => {
   }
   
   localStorage.setItem('lovable_insecurities', JSON.stringify(entries));
+};
+
+export const addInsecurityAudit = (audit: InsecurityAudit) => {
+  const audits = JSON.parse(localStorage.getItem('lovable_insecurity_audits') || '[]');
+  audits.push(audit);
+  localStorage.setItem('lovable_insecurity_audits', JSON.stringify(audits));
+};
+
+export const getInsecurityAudits = (insecurityId: string): InsecurityAudit[] => {
+  const audits = JSON.parse(localStorage.getItem('lovable_insecurity_audits') || '[]');
+  return audits.filter((a: InsecurityAudit) => a.insecurityId === insecurityId);
 };
 
 // Song Bucket
