@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CoupleProvider, useCoupleContext } from "./contexts/CoupleContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
 import CoupleHome from "./pages/CoupleHome";
 import InsecurityVault from "./pages/InsecurityVault";
 import Diary from "./pages/Diary";
@@ -33,7 +32,6 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
             <Route path="/couple-home" element={<ProtectedRoute><CoupleHome /></ProtectedRoute>} />
             <Route path="/insecurity-vault" element={<ProtectedRoute><InsecurityVault /></ProtectedRoute>} />
       <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
