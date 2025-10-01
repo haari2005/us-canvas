@@ -1,4 +1,5 @@
-// localStorage utilities for Lovable
+// Storage utilities for Lovable (Supabase first, with localStorage fallback)
+import { supabase, hasSupabaseConfig } from '@/lib/supabase';
 
 export interface DiaryEntry {
   id: string;
@@ -93,25 +94,67 @@ export interface SongBucketItem {
 }
 
 // Diary Storage
-export const getDiaryEntries = (coupleId: string): DiaryEntry[] => {
+export const getDiaryEntries = async (coupleId: string): Promise<DiaryEntry[]> => {
+  if (hasSupabaseConfig) {
+    const { data, error } = await (supabase as any)
+      .from('diary_entries')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return (data || []).map((d: any) => ({
+      id: d.id,
+      coupleId: d.couple_id,
+      authorId: d.author_id,
+      authorName: d.author_name,
+      title: d.title,
+      content: d.content,
+      mood: d.mood || undefined,
+      attachments: d.attachments || [],
+      isPrivate: !!d.is_private,
+      createdAt: d.created_at,
+      updatedAt: d.updated_at,
+      deletedAt: d.deleted_at || undefined,
+    }));
+  }
   const entries = JSON.parse(localStorage.getItem('lovable_diary_entries') || '[]');
   return entries.filter((e: DiaryEntry) => e.coupleId === coupleId && !e.deletedAt);
 };
 
-export const saveDiaryEntry = (entry: DiaryEntry) => {
+export const saveDiaryEntry = async (entry: DiaryEntry) => {
+  if (hasSupabaseConfig) {
+    const payload = {
+      id: entry.id,
+      couple_id: entry.coupleId,
+      author_id: entry.authorId,
+      author_name: entry.authorName,
+      title: entry.title,
+      content: entry.content,
+      mood: entry.mood || null,
+      attachments: entry.attachments || [],
+      is_private: entry.isPrivate,
+      created_at: entry.createdAt,
+      updated_at: entry.updatedAt,
+      deleted_at: entry.deletedAt || null,
+    };
+    await (supabase as any).from('diary_entries').upsert(payload);
+    return;
+  }
   const entries = JSON.parse(localStorage.getItem('lovable_diary_entries') || '[]');
   const index = entries.findIndex((e: DiaryEntry) => e.id === entry.id);
-  
-  if (index !== -1) {
-    entries[index] = entry;
-  } else {
-    entries.push(entry);
-  }
-  
+  if (index !== -1) entries[index] = entry; else entries.push(entry);
   localStorage.setItem('lovable_diary_entries', JSON.stringify(entries));
 };
 
-export const deleteDiaryEntry = (entryId: string) => {
+export const deleteDiaryEntry = async (entryId: string) => {
+  if (hasSupabaseConfig) {
+    await (supabase as any)
+      .from('diary_entries')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', entryId);
+    return;
+  }
   const entries = JSON.parse(localStorage.getItem('lovable_diary_entries') || '[]');
   const index = entries.findIndex((e: DiaryEntry) => e.id === entryId);
   
@@ -122,12 +165,42 @@ export const deleteDiaryEntry = (entryId: string) => {
 };
 
 // Photo Storage
-export const getPhotos = (coupleId: string): Photo[] => {
+export const getPhotos = async (coupleId: string): Promise<Photo[]> => {
+  if (hasSupabaseConfig) {
+    const { data, error } = await (supabase as any)
+      .from('photos')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return (data || []).map((p: any) => ({
+      id: p.id,
+      coupleId: p.couple_id,
+      uploaderId: p.uploader_id,
+      uploaderName: p.uploader_name,
+      data: p.data,
+      caption: p.caption,
+      createdAt: p.created_at,
+    }));
+  }
   const photos = JSON.parse(localStorage.getItem('lovable_photos') || '[]');
   return photos.filter((p: Photo) => p.coupleId === coupleId);
 };
 
-export const savePhoto = (photo: Photo) => {
+export const savePhoto = async (photo: Photo) => {
+  if (hasSupabaseConfig) {
+    const payload = {
+      id: photo.id,
+      couple_id: photo.coupleId,
+      uploader_id: photo.uploaderId,
+      uploader_name: photo.uploaderName,
+      data: photo.data,
+      caption: photo.caption,
+      created_at: photo.createdAt,
+    };
+    await (supabase as any).from('photos').upsert(payload);
+    return;
+  }
   const photos = JSON.parse(localStorage.getItem('lovable_photos') || '[]');
   photos.push(photo);
   localStorage.setItem('lovable_photos', JSON.stringify(photos));
@@ -167,51 +240,116 @@ const DAILY_QUESTIONS = [
   "What's a small gesture that means a lot to you?"
 ];
 
-export const getTodayQuestion = (coupleId: string): DailyQuestion => {
+export const getTodayQuestion = async (coupleId: string): Promise<DailyQuestion> => {
   const today = new Date().toISOString().split('T')[0];
+  if (hasSupabaseConfig) {
+    const { data: found } = await (supabase as any)
+      .from('daily_questions')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .eq('date', today)
+      .limit(1);
+    let q = found && found[0];
+    if (!q) {
+      const dayIndex = Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % DAILY_QUESTIONS.length);
+      const toInsert = {
+        id: crypto.randomUUID(),
+        couple_id: coupleId,
+        question_text: DAILY_QUESTIONS[dayIndex],
+        date: today,
+        created_at: new Date().toISOString(),
+      };
+      const { data: inserted } = await (supabase as any)
+        .from('daily_questions')
+        .insert(toInsert)
+        .select('*')
+        .limit(1);
+      q = inserted && inserted[0];
+    }
+    return {
+      id: q.id,
+      coupleId: q.couple_id,
+      questionText: q.question_text,
+      answerByA: q.answer_by_a || undefined,
+      answerByB: q.answer_by_b || undefined,
+      date: q.date,
+    };
+  }
   const questions = JSON.parse(localStorage.getItem('lovable_daily_questions') || '[]');
-  
-  let todayQuestion = questions.find((q: DailyQuestion) => 
-    q.coupleId === coupleId && q.date === today
-  );
-
+  let todayQuestion = questions.find((q: DailyQuestion) => q.coupleId === coupleId && q.date === today);
   if (!todayQuestion) {
     const dayIndex = Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % DAILY_QUESTIONS.length);
-    todayQuestion = {
-      id: crypto.randomUUID(),
-      coupleId,
-      questionText: DAILY_QUESTIONS[dayIndex],
-      date: today
-    };
+    todayQuestion = { id: crypto.randomUUID(), coupleId, questionText: DAILY_QUESTIONS[dayIndex], date: today };
     questions.push(todayQuestion);
     localStorage.setItem('lovable_daily_questions', JSON.stringify(questions));
   }
-
   return todayQuestion;
 };
 
-export const answerDailyQuestion = (questionId: string, userId: string, answer: string, isPartnerA: boolean) => {
+export const answerDailyQuestion = async (questionId: string, userId: string, answer: string, isPartnerA: boolean) => {
+  if (hasSupabaseConfig) {
+    const { data: rows } = await (supabase as any)
+      .from('daily_questions')
+      .select('answer_by_a,answer_by_b')
+      .eq('id', questionId)
+      .limit(1);
+    const current = rows && rows[0];
+    const answerData = { text: answer, timestamp: new Date().toISOString(), userId };
+    const update: any = isPartnerA ? { answer_by_a: answerData } : { answer_by_b: answerData };
+    await (supabase as any)
+      .from('daily_questions')
+      .update(update)
+      .eq('id', questionId);
+    return;
+  }
   const questions = JSON.parse(localStorage.getItem('lovable_daily_questions') || '[]');
   const index = questions.findIndex((q: DailyQuestion) => q.id === questionId);
-  
   if (index !== -1) {
     const answerData = { text: answer, timestamp: new Date().toISOString() };
-    if (isPartnerA) {
-      questions[index].answerByA = answerData;
-    } else {
-      questions[index].answerByB = answerData;
-    }
+    if (isPartnerA) questions[index].answerByA = answerData; else questions[index].answerByB = answerData;
     localStorage.setItem('lovable_daily_questions', JSON.stringify(questions));
   }
 };
 
 // Reminders
-export const getReminders = (coupleId: string): Reminder[] => {
+export const getReminders = async (coupleId: string): Promise<Reminder[]> => {
+  if (hasSupabaseConfig) {
+    const { data } = await (supabase as any)
+      .from('reminders')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('datetime', { ascending: true });
+    return (data || []).map((r: any) => ({
+      id: r.id,
+      coupleId: r.couple_id,
+      creatorId: r.creator_id,
+      title: r.title,
+      datetime: r.datetime,
+      repeatRules: r.repeat_rules || undefined,
+      notificationChannels: r.notification_channels || [],
+      completed: !!r.completed,
+    }));
+  }
   const reminders = JSON.parse(localStorage.getItem('lovable_reminders') || '[]');
   return reminders.filter((r: Reminder) => r.coupleId === coupleId);
 };
 
-export const saveReminder = (reminder: Reminder) => {
+export const saveReminder = async (reminder: Reminder) => {
+  if (hasSupabaseConfig) {
+    const payload = {
+      id: reminder.id,
+      couple_id: reminder.coupleId,
+      creator_id: reminder.creatorId,
+      title: reminder.title,
+      datetime: reminder.datetime,
+      repeat_rules: reminder.repeatRules || null,
+      notification_channels: reminder.notificationChannels || [],
+      completed: reminder.completed,
+      created_at: new Date().toISOString(),
+    };
+    await (supabase as any).from('reminders').upsert(payload);
+    return;
+  }
   const reminders = JSON.parse(localStorage.getItem('lovable_reminders') || '[]');
   const index = reminders.findIndex((r: Reminder) => r.id === reminder.id);
   
@@ -225,12 +363,61 @@ export const saveReminder = (reminder: Reminder) => {
 };
 
 // Insecurity Vault
-export const getInsecurities = (coupleId: string): InsecurityEntry[] => {
+export const getInsecurities = async (coupleId: string): Promise<InsecurityEntry[]> => {
+  if (hasSupabaseConfig) {
+    const { data } = await (supabase as any)
+      .from('insecurities')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .neq('status', 'archived')
+      .order('created_at', { ascending: false });
+    return (data || []).map((e: any) => ({
+      id: e.id,
+      coupleId: e.couple_id,
+      authorId: e.author_id,
+      authorName: e.author_name,
+      title: e.title || undefined,
+      content: e.content,
+      attachments: e.attachments || [],
+      urgency: e.urgency,
+      visibility: e.visibility,
+      unlockAt: e.unlock_at || undefined,
+      allowReplies: e.allow_replies,
+      tags: e.tags || [],
+      status: e.status,
+      openedBy: e.opened_by || undefined,
+      openedAt: e.opened_at || undefined,
+      createdAt: e.created_at,
+      replies: [],
+    }));
+  }
   const entries = JSON.parse(localStorage.getItem('lovable_insecurities') || '[]');
   return entries.filter((e: InsecurityEntry) => e.coupleId === coupleId && e.status !== 'archived');
 };
 
-export const saveInsecurity = (entry: InsecurityEntry) => {
+export const saveInsecurity = async (entry: InsecurityEntry) => {
+  if (hasSupabaseConfig) {
+    const payload = {
+      id: entry.id,
+      couple_id: entry.coupleId,
+      author_id: entry.authorId,
+      author_name: entry.authorName,
+      title: entry.title || null,
+      content: entry.content,
+      attachments: entry.attachments || [],
+      urgency: entry.urgency,
+      visibility: entry.visibility,
+      unlock_at: entry.unlockAt || null,
+      allow_replies: entry.allowReplies,
+      tags: entry.tags || [],
+      status: entry.status,
+      opened_by: entry.openedBy || null,
+      opened_at: entry.openedAt || null,
+      created_at: entry.createdAt,
+    };
+    await (supabase as any).from('insecurities').upsert(payload);
+    return;
+  }
   const entries = JSON.parse(localStorage.getItem('lovable_insecurities') || '[]');
   const index = entries.findIndex((e: InsecurityEntry) => e.id === entry.id);
   
@@ -243,24 +430,78 @@ export const saveInsecurity = (entry: InsecurityEntry) => {
   localStorage.setItem('lovable_insecurities', JSON.stringify(entries));
 };
 
-export const addInsecurityAudit = (audit: InsecurityAudit) => {
+export const addInsecurityAudit = async (audit: InsecurityAudit) => {
+  if (hasSupabaseConfig) {
+    await (supabase as any).from('insecurity_replies').insert({
+      id: audit.id,
+      insecurity_id: audit.insecurityId,
+      author_id: audit.actorId,
+      author_name: audit.actorName,
+      message: audit.action,
+      created_at: audit.createdAt,
+    });
+    return;
+  }
   const audits = JSON.parse(localStorage.getItem('lovable_insecurity_audits') || '[]');
   audits.push(audit);
   localStorage.setItem('lovable_insecurity_audits', JSON.stringify(audits));
 };
 
-export const getInsecurityAudits = (insecurityId: string): InsecurityAudit[] => {
+export const getInsecurityAudits = async (insecurityId: string): Promise<InsecurityAudit[]> => {
+  if (hasSupabaseConfig) {
+    const { data } = await (supabase as any)
+      .from('insecurity_replies')
+      .select('*')
+      .eq('insecurity_id', insecurityId)
+      .order('created_at', { ascending: true });
+    return (data || []).map((r: any) => ({
+      id: r.id,
+      insecurityId: r.insecurity_id,
+      action: 'commented',
+      actorId: r.author_id,
+      actorName: r.author_name,
+      createdAt: r.created_at,
+    }));
+  }
   const audits = JSON.parse(localStorage.getItem('lovable_insecurity_audits') || '[]');
   return audits.filter((a: InsecurityAudit) => a.insecurityId === insecurityId);
 };
 
 // Song Bucket
-export const getSongBucket = (coupleId: string): SongBucketItem[] => {
+export const getSongBucket = async (coupleId: string): Promise<SongBucketItem[]> => {
+  if (hasSupabaseConfig) {
+    const { data } = await (supabase as any)
+      .from('song_bucket')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: false });
+    return (data || []).map((s: any) => ({
+      id: s.id,
+      coupleId: s.couple_id,
+      addedById: s.added_by_id,
+      addedByName: s.added_by_name,
+      spotifyUri: s.spotify_uri,
+      note: s.note,
+      createdAt: s.created_at,
+    }));
+  }
   const songs = JSON.parse(localStorage.getItem('lovable_song_bucket') || '[]');
   return songs.filter((s: SongBucketItem) => s.coupleId === coupleId);
 };
 
-export const addSongToBucket = (song: SongBucketItem) => {
+export const addSongToBucket = async (song: SongBucketItem) => {
+  if (hasSupabaseConfig) {
+    await (supabase as any).from('song_bucket').upsert({
+      id: song.id,
+      couple_id: song.coupleId,
+      added_by_id: song.addedById,
+      added_by_name: song.addedByName,
+      spotify_uri: song.spotifyUri,
+      note: song.note,
+      created_at: song.createdAt,
+    });
+    return;
+  }
   const songs = JSON.parse(localStorage.getItem('lovable_song_bucket') || '[]');
   songs.push(song);
   localStorage.setItem('lovable_song_bucket', JSON.stringify(songs));

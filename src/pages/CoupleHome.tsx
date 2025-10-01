@@ -16,30 +16,27 @@ const CoupleHome = () => {
   const [myAnswer, setMyAnswer] = useState('');
 
   useEffect(() => {
-    if (couple?.id) {
-      const question = getTodayQuestion(couple.id);
-      setTodayQuestion(question);
-      
-      // Check if user already answered
-      const isPartnerA = currentUser?.id === couple.memberA.id;
-      if (isPartnerA && question.answerByA) {
-        setMyAnswer(question.answerByA.text);
-      } else if (!isPartnerA && question.answerByB) {
-        setMyAnswer(question.answerByB.text);
+    const load = async () => {
+      if (couple?.id) {
+        const question = await getTodayQuestion(couple.id);
+        setTodayQuestion(question);
+        const isPartnerA = currentUser?.id === couple.memberA.id;
+        if (isPartnerA && question.answerByA) {
+          setMyAnswer(question.answerByA.text);
+        } else if (!isPartnerA && question.answerByB) {
+          setMyAnswer(question.answerByB.text);
+        }
       }
-    }
+    };
+    load();
   }, [couple, currentUser]);
 
-  const handleAnswerSubmit = () => {
+  const handleAnswerSubmit = async () => {
     if (!todayQuestion || !currentUser || !couple) return;
-    
     const isPartnerA = currentUser.id === couple.memberA.id;
-    answerDailyQuestion(todayQuestion.id, currentUser.id, myAnswer, isPartnerA);
-    
+    await answerDailyQuestion(todayQuestion.id, currentUser.id, myAnswer, isPartnerA);
     toast({ title: 'Answer saved!', description: 'Your daily question response has been recorded' });
-    
-    // Reload question
-    const updated = getTodayQuestion(couple.id);
+    const updated = await getTodayQuestion(couple.id);
     setTodayQuestion(updated);
   };
 
@@ -56,24 +53,10 @@ const CoupleHome = () => {
     { icon: Music, label: 'Song Bucket', action: () => navigate('/song-bucket'), color: 'text-green-500' },
   ];
 
-  if (!couple) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card>
-          <CardHeader>
-            <CardTitle>No Couple Found</CardTitle>
-            <CardDescription>Please complete onboarding first</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate('/onboarding')}>Go to Onboarding</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const partnerName = currentUser?.id === couple.memberA.id ? couple.memberB.name : couple.memberA.name;
-  const isWaitingForPartner = !couple.memberB.id;
+  const partnerName = couple
+    ? (currentUser?.id === couple.memberA.id ? couple.memberB.name : couple.memberA.name)
+    : '';
+  const isWaitingForPartner = couple ? !couple.memberB.id : false;
 
   return (
     <div className="min-h-screen pt-8 pb-20 px-4 sm:px-6 lg:px-8">
@@ -85,10 +68,19 @@ const CoupleHome = () => {
               <Heart className="h-10 w-10 text-white animate-heartbeat" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">{couple.name}</h1>
-          <p className="text-muted-foreground">
-            {isWaitingForPartner ? 'Waiting for your partner to join...' : `You and ${partnerName}`}
-          </p>
+          {couple ? (
+            <>
+              <h1 className="text-4xl font-bold text-foreground mb-2">{couple.name}</h1>
+              <p className="text-muted-foreground">
+                {isWaitingForPartner ? 'Waiting for your partner to join...' : `You and ${partnerName}`}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Welcome{currentUser?.name ? `, ${currentUser.name}` : ''}</h1>
+              <p className="text-muted-foreground">You're logged in. Explore features below.</p>
+            </>
+          )}
         </div>
 
         {/* Quick Actions */}
@@ -107,8 +99,8 @@ const CoupleHome = () => {
           ))}
         </div>
 
-        {/* Daily Question */}
-        {todayQuestion && (
+        {/* Daily Question (only when couple exists) */}
+        {couple && todayQuestion && (
           <Card className="mb-8 shadow-gentle">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -138,7 +130,7 @@ const CoupleHome = () => {
                 <div className="pt-4 border-t">
                   <p className="text-sm font-medium mb-2">{partnerName}'s answer:</p>
                   <p className="text-sm text-muted-foreground">
-                    {currentUser?.id === couple.memberA.id 
+                    {currentUser && couple && currentUser.id === couple.memberA.id 
                       ? todayQuestion.answerByB?.text 
                       : todayQuestion.answerByA?.text}
                   </p>

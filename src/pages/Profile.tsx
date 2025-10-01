@@ -1,5 +1,6 @@
 import { CoupleProfile } from "@/components/CoupleProfile";
 import { MoodTracker } from "@/components/MoodTracker";
+import { UserProfileEditor } from "@/components/UserProfileEditor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Heart, TrendingUp, Calendar } from "lucide-react";
@@ -72,7 +73,10 @@ const Profile = () => {
           </TabsList>
           
           <TabsContent value="profile">
-            <CoupleProfile />
+            <div className="grid md:grid-cols-2 gap-6">
+              <UserProfileEditor />
+              <CoupleProfile />
+            </div>
           </TabsContent>
           
           <TabsContent value="mood">
