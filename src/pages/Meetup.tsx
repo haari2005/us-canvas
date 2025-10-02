@@ -37,8 +37,8 @@ const MeetUp = () => {
             'microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection',
             'profile', 'chat', 'recording', 'livestreaming', 'etherpad',
             'sharedvideo', 'settings', 'raisehand', 'videoquality', 'filmstrip',
-            'feedback', 'stats', 'shortcuts', 'tileview', 'videobgblur',
-            'download', 'help', 'mute-everyone', 'security', 'e2ee', 'hangup' // Added hangup button
+            'feedback', 'stats', 'shortcuts', 'tileview', 'videobgblur', 'hangup',
+            'download', 'help', 'mute-everyone', 'security', 'e2ee' // Added hangup button
           ],
           // Optionally hide toolbars on mouse out
           TOOLBAR_AUTO_HIDE_ENABLED: true,
@@ -88,7 +88,7 @@ const MeetUp = () => {
           ref={jitsiContainerRef}
           id="jitsi-container" 
           className="aspect-[16/9] w-full bg-muted rounded-lg overflow-hidden border"
-          style={{ height: '90vh' }} // Increased height to 90vh
+          style={{ height: '600px' }}
         >
           {/* Jitsi Meet will be embedded here via JavaScript */}
           {!currentUser && (
