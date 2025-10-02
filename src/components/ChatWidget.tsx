@@ -41,14 +41,6 @@ export default function ChatWidget() {
 		}
 	}, [couple, currentUser, coupleId]);
 
-	// Auto-open chat when couple is loaded and not currently open, only once after initial load
-	useEffect(() => {
-		if (couple && !isLoading && !hasBeenManuallyClosedRef.current && !open) {
-			console.log('ChatWidget: Couple detected and loaded, opening chat automatically.');
-			setOpen(true);
-		}
-	}, [couple, isLoading]); 
-
 	const nowIso = () => new Date().toISOString();
 	const cutoffIso = useMemo(() => new Date(Date.now() - ONE_DAY_MS).toISOString(), []);
 
