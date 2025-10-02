@@ -8,11 +8,11 @@ import {
   Gamepad2, 
   Camera, 
   Calendar, 
-  MessageCircle, 
   User, 
   Settings, 
   Menu,
-  Home 
+  Home,
+  Video
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ const navigationItems = [
   { href: "/games", label: "Games", icon: Gamepad2 },
   { href: "/memories", label: "Memories", icon: Camera },
   { href: "/activities", label: "Activities", icon: Calendar },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/meet-up", label: "Meet Up", icon: Video },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
