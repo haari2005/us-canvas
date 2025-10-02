@@ -93,6 +93,27 @@ export interface SongBucketItem {
   createdAt: string;
 }
 
+export interface GameSession {
+  id: string;
+  coupleId: string;
+  title: string;
+  url: string;
+  roomLink?: string;
+  playedAt: string;
+  gameKey?: 'papergames' | 'tanggle' | 'skribbl' | 'other';
+  winnerId?: string;
+  participants: string[];
+}
+
+export interface ChatMessage {
+  id: string;
+  coupleId: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+}
+
 // Diary Storage
 export const getDiaryEntries = async (coupleId: string): Promise<DiaryEntry[]> => {
   if (hasSupabaseConfig) {
@@ -505,4 +526,117 @@ export const addSongToBucket = async (song: SongBucketItem) => {
   const songs = JSON.parse(localStorage.getItem('lovable_song_bucket') || '[]');
   songs.push(song);
   localStorage.setItem('lovable_song_bucket', JSON.stringify(songs));
+};
+
+// Partner mapping utilities
+export const setPartnerMap = (coupleId: string, partnerIds: string[]) => {
+  if (hasSupabaseConfig) {
+    // For Supabase, we don't need to store partner mappings separately
+    // as they're already in the couples table
+    return;
+  }
+  
+  // For localStorage, store the partner mapping for easy lookup
+  const partnerMaps = JSON.parse(localStorage.getItem('lovable_partner_maps') || '{}');
+  partnerMaps[coupleId] = partnerIds;
+  localStorage.setItem('lovable_partner_maps', JSON.stringify(partnerMaps));
+};
+
+export const getPartnerMap = (coupleId: string): string[] => {
+  if (hasSupabaseConfig) {
+    // For Supabase, partner IDs should be retrieved from couples table
+    return [];
+  }
+  
+  const partnerMaps = JSON.parse(localStorage.getItem('lovable_partner_maps') || '{}');
+  return partnerMaps[coupleId] || [];
+};
+
+// Game Sessions
+export const getGameSessions = async (coupleId: string): Promise<GameSession[]> => {
+  if (hasSupabaseConfig) {
+    const { data, error } = await (supabase as any)
+      .from('game_sessions')
+      .select('*')
+      .eq('couple_id', coupleId)
+      .order('played_at', { ascending: false });
+    if (error) return [];
+    return (data || []).map((g: any) => ({
+      id: g.id,
+      coupleId: g.couple_id,
+      title: g.title,
+      url: g.url,
+      roomLink: g.room_link || undefined,
+      playedAt: g.played_at,
+      gameKey: g.game_key || undefined,
+      winnerId: g.winner_id || undefined,
+      participants: g.participants || [],
+    }));
+  }
+  const sessions = JSON.parse(localStorage.getItem('lovable_game_sessions') || '[]');
+  return sessions.filter((s: GameSession) => s.coupleId === coupleId);
+};
+
+export const saveGameSession = async (session: GameSession) => {
+  if (hasSupabaseConfig) {
+    const payload = {
+      id: session.id,
+      couple_id: session.coupleId,
+      title: session.title,
+      url: session.url,
+      room_link: session.roomLink || null,
+      played_at: session.playedAt,
+      game_key: session.gameKey || null,
+      winner_id: session.winnerId || null,
+      participants: session.participants || [],
+      created_at: new Date().toISOString(),
+    };
+    await (supabase as any).from('game_sessions').upsert(payload);
+    return;
+  }
+  const sessions = JSON.parse(localStorage.getItem('lovable_game_sessions') || '[]');
+  const index = sessions.findIndex((s: GameSession) => s.id === session.id);
+  if (index !== -1) {
+    sessions[index] = session;
+  } else {
+    sessions.push(session);
+  }
+  localStorage.setItem('lovable_game_sessions', JSON.stringify(sessions));
+};
+
+export const deleteGameSession = async (sessionId: string) => {
+  if (hasSupabaseConfig) {
+    await (supabase as any)
+      .from('game_sessions')
+      .delete()
+      .eq('id', sessionId);
+    return;
+  }
+  const sessions = JSON.parse(localStorage.getItem('lovable_game_sessions') || '[]');
+  const filtered = sessions.filter((s: GameSession) => s.id !== sessionId);
+  localStorage.setItem('lovable_game_sessions', JSON.stringify(filtered));
+};
+
+// Chat Messages
+export const getLocalMessages = async (coupleId: string): Promise<ChatMessage[]> => {
+  console.log('getLocalMessages called for coupleId:', coupleId);
+  
+  // Always check localStorage for messages (even with Supabase for offline support)
+  const messages = JSON.parse(localStorage.getItem('lovable_chat_messages') || '[]');
+  const filteredMessages = messages.filter((m: ChatMessage) => m.coupleId === coupleId);
+  
+  console.log('Found messages in localStorage:', filteredMessages.length);
+  return filteredMessages;
+};
+
+export const saveLocalMessage = async (message: ChatMessage) => {
+  console.log('saveLocalMessage called with:', message);
+  
+  // Always save to localStorage for the chat widget to work
+  // even if Supabase is configured (for offline support)
+  const messages = JSON.parse(localStorage.getItem('lovable_chat_messages') || '[]');
+  messages.push(message);
+  localStorage.setItem('lovable_chat_messages', JSON.stringify(messages));
+  
+  console.log('Message saved to localStorage, total messages:', messages.length);
 };

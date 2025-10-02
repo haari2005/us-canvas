@@ -4,8 +4,12 @@ import { UserProfileEditor } from "@/components/UserProfileEditor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Heart, TrendingUp, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCoupleContext } from "@/contexts/CoupleContext";
 
 const Profile = () => {
+  const { logout } = useCoupleContext();
+
   return (
     <div className="min-h-screen pt-8 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
@@ -76,6 +80,12 @@ const Profile = () => {
             <div className="grid md:grid-cols-2 gap-6">
               <UserProfileEditor />
               <CoupleProfile />
+              <Card className="shadow-gentle p-4 text-center">
+                <h3 className="text-lg font-semibold mb-3">Manage Session</h3>
+                <Button variant="destructive" onClick={logout} className="w-full">
+                  Logout
+                </Button>
+              </Card>
             </div>
           </TabsContent>
           

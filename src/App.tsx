@@ -12,40 +12,14 @@ import Diary from "./pages/Diary";
 import Games from "./pages/Games";
 import Memories from "./pages/Memories";
 import Activities from "./pages/Activities";
-import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Navigation } from "./components/Navigation";
+import ChatWidget from "./components/ChatWidget";
+import MeetUp from "./pages/MeetUp"; // Import MeetUp component
 
 const queryClient = new QueryClient();
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useCoupleContext();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/auth" />;
-};
-
-const AppRoutes = () => {
-  const { isAuthenticated, couple } = useCoupleContext();
-  
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/auth" element={<Auth />} />
-            <Route path="/couple-home" element={<ProtectedRoute><CoupleHome /></ProtectedRoute>} />
-            <Route path="/insecurity-vault" element={<ProtectedRoute><InsecurityVault /></ProtectedRoute>} />
-      <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
-      <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-      <Route path="/memories" element={<ProtectedRoute><Memories /></ProtectedRoute>} />
-      <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
-      <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -54,14 +28,45 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="min-h-screen bg-gradient-sunset">
-            <Navigation />
-            <AppRoutes />
-          </div>
+          <AppContent />
         </BrowserRouter>
       </TooltipProvider>
     </CoupleProvider>
   </QueryClientProvider>
 );
+
+const AppContent = () => {
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    const { isAuthenticated, isLoading } = useCoupleContext();
+    if (isLoading) {
+      return null; // Or a loading spinner
+    }
+    return isAuthenticated ? <>{children}</> : <Navigate to="/auth" />;
+  };
+
+  const { isAuthenticated } = useCoupleContext(); // Still needed for ChatWidget conditional rendering
+
+  return (
+    <div className="min-h-screen bg-gradient-sunset">
+      <Navigation />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/couple-home" element={<ProtectedRoute><CoupleHome /></ProtectedRoute>} />
+        <Route path="/insecurity-vault" element={<ProtectedRoute><InsecurityVault /></ProtectedRoute>} />
+        <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
+        <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
+        <Route path="/memories" element={<ProtectedRoute><Memories /></ProtectedRoute>} />
+        <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/meet-up" element={<ProtectedRoute><MeetUp /></ProtectedRoute>} /> {/* New Meet Up Route */}
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      {isAuthenticated && <ChatWidget />}
+    </div>
+  );
+};
 
 export default App;
